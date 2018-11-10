@@ -34,14 +34,14 @@ void imageProcessOnChipAndOnVS(uint8_t (*image)[CAMERA_COLS])
 		else if (Stepping_over_zebra_flag == 1 && head_clear_flag == 1)//
 		{
 			Stepping_over_zebra_flag = 2;
-			barrier_status_transform();
-			zebra_find_distance = Distance;
+			barrier_status_transform();//障碍物信息更新
+			zebra_find_distance = Distance;//斑马线的距离
 		}
 	}
 	/*环形****************************************************/
-	if (!Ring_FIND)
+	if (!Ring_FIND)//标志为0
 	{
-		Ring_Detection();
+		Ring_Detection();//圆环检测
 		if (Ring_FIND)
 		{
 			current_status = Ring_step_zero;
@@ -920,19 +920,23 @@ void LeastSquareMethod(PosType *data, uint8_t size)
 
 	for (i = 0; i < size; i++)
 	{
-		xsum += data[i].x;
-		x2sum += (data[i].x) * (data[i].x);
-		ysum += data[i].y;
-		xysum += (data[i].x) * (data[i].y);
+		xsum += data[i].x;//x求和
+		x2sum += (data[i].x) * (data[i].x);//x的平方和
+		ysum += data[i].y;//y求和
+		xysum += (data[i].x) * (data[i].y);//x*y求和
 	}
 
-	if (size * x2sum - xsum * xsum == 0)
+	if (size * x2sum - xsum * xsum == 0)//排除除零错误
 	{
 		k = 0;
 		d = 0;
 	}
-	k = (float)(size * xysum - xsum * ysum) / (float)(size * x2sum - xsum * xsum);
-	d = (float)(x2sum * ysum - xysum * xsum) / (float)(size * x2sum - xsum * xsum);
+	else
+	{ 	
+		k = (float)(size * xysum - xsum * ysum) / (float)(size * x2sum - xsum * xsum);
+		d = (float)(x2sum * ysum - xysum * xsum) / (float)(size * x2sum - xsum * xsum);
+	}
+
 }
 void Stop_Detection(void) //停止线检测
 {
@@ -3253,7 +3257,7 @@ uint8 Super_Ring_Check(const float k_local_left, const float d_local_left, const
 	return 0;
 }
 
-int Ring_Curnor_Line[2] = { 0 };
+int Ring_Curnor_Line[2] = { 0 };//圆心所在行
 
 void check_cross_result()
 {
@@ -3300,20 +3304,20 @@ void Ring_Detection(void) //环形路口检测
 {
 	int Ring_Confirm_first = 0, Ring_Confirm_second = 0, Ring_Confirm_third = 0, Ring_Confirm_forth = 0;
 	short line, column;
-	int Ring_Curnor[2] = { 0 };
+	int Ring_Curnor[2] = { 0 };//左侧、右侧有圆还是正常
 	Ring_Curnor_Line[0] = 0;
 	Ring_Curnor_Line[1] = 0;
-	//表示进入圆环时赛道宽度的有规律变宽
+	//表示进入圆环时赛道宽度的有规律变宽;检测圆环切角
 	for (line = RowMax - 5; line >= RowMin + 5; line--)
 	{
 		int width[2][3] = { 0 };
 		int i = 0;
-		for (i = 0; i < 3; i++)
+		for (i = 0; i < 3; i++)//width[0]存储左边缘到中心的宽度
 		{
 			if (left[line - i] > 0 && right[line - i] < 79)
 			{
 				width[0][i] = 39 - left[line - i];
-				width[1][i] = right[line - i] - 39;
+				width[1][i] = right[line - i] - 39;//width[1]存储右边缘到中心的宽度
 			}
 			else
 				break;
@@ -3340,20 +3344,20 @@ void Ring_Detection(void) //环形路口检测
 		}
 	}
 
-	//两个拐角
+	//两个拐角：检测赛道左边为弓形
 	for (line = RowMax - 5; line > RowMin + 10; line--)
 	{
-		if (left[line] > left[line + 5] && (left[line] - 5) > left[line - 5])
+		if (left[line] > left[line + 5] && (left[line] - 5) > left[line - 5])//当前左边缘纵坐标大于下5行的纵坐标
 		{
 			if (left[line - 2] > 0 && left[line - 1] > 0)
 			{
-				Ring_Curnor_Line[0] = line;
-				Ring_Curnor[0] = 1;
+				Ring_Curnor_Line[0] = line;//圆心所在行
+				Ring_Curnor[0] = 1;//左侧有圆
 				break;
 			}
 		}
 	}
-	for (line = RowMax - 5; line > RowMin + 10; line--)
+	for (line = RowMax - 5; line > RowMin + 10; line--)//检测赛道右侧为弓形
 	{
 		if (right[line] < right[line + 5] && (right[line] + 5) < right[line - 5])
 		{
@@ -3366,14 +3370,14 @@ void Ring_Detection(void) //环形路口检测
 		}
 	}
 	if (Ring_Curnor[0] == 1 && Ring_Curnor[1] == 1 && (Ring_Curnor_Line[0] - Ring_Curnor_Line[1]) > -5 && (Ring_Curnor_Line[0] - Ring_Curnor_Line[1]) < 5)
-		Ring_Confirm_second = 1;
+		Ring_Confirm_second = 1;//Ring_Curnor  两边同时有圆，判断条件很迷
 	//短直道检测
 	float ZHI_NUM = 20.0;
 	float temp_k_more[2][3] = { 0 };
 	float temp_k[2] = { 0 };
 	float temp_err[2] = { 0 };
-	temp_k[0] = (left[RowMax - (int)ZHI_NUM] - left[RowMax]) / ZHI_NUM;
-	temp_k_more[0][0] = (left[RowMax - 30] - left[RowMax - 20]) / 10.0;
+	temp_k[0] = float(left[RowMax - (int)ZHI_NUM] - left[RowMax]) / ZHI_NUM;//求边缘底部与中心的斜率
+	temp_k_more[0][0] = (left[RowMax - 30] - left[RowMax - 20]) / 10.0;//分别求三小段的斜率
 	temp_k_more[0][1] = (left[RowMax - 20] - left[RowMax - 10]) / 10.0;
 	temp_k_more[0][2] = (left[RowMax - 10] - left[RowMax]) / 10.0;
 
@@ -3387,11 +3391,11 @@ void Ring_Detection(void) //环形路口检测
 	for (i = 1; i < (int)ZHI_NUM; i++)
 	{
 		float temp = 0;
-		if ((left[RowMax] + temp_k[0] * i - left[RowMax - i]) < YUZHI && (left[RowMax] + temp_k[0] * i - left[RowMax - i]) > -YUZHI)
-			temp = 0;
+		if ((left[RowMax] + int(temp_k[0] * i) - left[RowMax - i]) < YUZHI && (left[RowMax] + temp_k[0] * i - left[RowMax - i]) > -YUZHI)
+			temp = 0;//直线与边缘在i坐标处相差小于阈值
 		else
-			temp = (left[RowMax] + temp_k[0] * i - left[RowMax - i]);
-		temp_err[0] = temp_err[0] + temp;
+			temp = (left[RowMax] + temp_k[0] * i - left[RowMax - i]);//直线与边缘在i坐标处的差
+		temp_err[0] = temp_err[0] + temp;//对差求积分
 	}
 	for (i = 1; i < (int)ZHI_NUM; i++)
 	{
@@ -3402,6 +3406,7 @@ void Ring_Detection(void) //环形路口检测
 			temp = (right[RowMax] + temp_k[1] * i - right[RowMax - i]);
 		temp_err[1] = temp_err[1] + temp;
 	}
+	//圆环的第四次确认
 	if (temp_err[0] > -10 && temp_err[0] < 10 && temp_err[1] > -10 && temp_err[1] < 10 && right[RowMax] != 79 && right[RowMax - 1] != 79 && right[RowMax - 2] != 79 && left[RowMax] > 2 && left[RowMax - 2] > 2 && left[RowMax - 3] > 2 && temp_k[0] > 0 && temp_k[1] < 0)
 	{
 		Ring_Confirm_forth = 1;
@@ -3413,6 +3418,7 @@ void Ring_Detection(void) //环形路口检测
 		return;
 	}
 	int *p_Ring_Confirm_third = &Ring_Confirm_third;
+	//圆环附加确认
 	uint8 res = Additional_Check_Ring(Ring_Curnor_Line[0], Ring_Curnor_Line[1], p_Ring_Confirm_third);
 
 	if (Ring_Confirm_first == 1 && Ring_Confirm_second == 1 && Ring_Confirm_third == 1 && Ring_Confirm_forth == 1)
@@ -3460,23 +3466,23 @@ uint8 Additional_Check_Ring(int left_change_row, int right_change_row, int *p_Ri
 
 	int cnt, line;
 
-	for (line = RowMax, cnt = 0; line > left_change_row; line--)
+	for (line = RowMax, cnt = 0; line > left_change_row; line--)//边缘解压成结构体形式，从底部到圆心
 	{
 		leftP[cnt].x = line;
 		leftP[cnt].y = left[line];
 		cnt++;
 	}
-	LeastSquareMethod(leftP, cnt);
+	LeastSquareMethod(leftP, cnt);//最小二乘法 求得k和d
 	float k_local_left = k;
 	float d_local_left = d;
 
-	for (line = RowMax, cnt = 0; line > left_change_row; line--)
+	for (line = RowMax, cnt = 0; line > left_change_row; line--)//边缘解压成结构体形式，从底部到圆心
 	{
 		rightP[cnt].x = line;
 		rightP[cnt].y = right[line];
 		cnt++;
 	}
-	LeastSquareMethod(rightP, cnt);
+	LeastSquareMethod(rightP, cnt);//最小二乘法 求得k和d
 	float k_local_right = k;
 	float d_local_right = d;
 
@@ -3485,28 +3491,28 @@ uint8 Additional_Check_Ring(int left_change_row, int right_change_row, int *p_Ri
 	for (line = RowMax - 10; line >= RowMin + 1; line--)
 	{
 		int Ring_line_flag[2] = { 0 };
-		for (column = left[line]; column <= right[line]; column++)
+		for (column = left[line]; column <= right[line]; column++)//赛道左边缘到右边缘
 		{
-			if (img[line][column] == THRESHOLD && img[line][column + 1] == 0)
+			if (img[line][column] == THRESHOLD && img[line][column + 1] == 0)//检测到右边缘，切角的左边边纵坐标
 			{
-				Ring_line_flag[0] = column;
+				Ring_line_flag[0] = column;//将右边缘纵坐标赋值给Ring_line_flag
 				break;
 			}
 		}
-		for (; column <= right[line]; column++)
+		for (; column <= right[line]; column++)//感觉判断条件改为column<80
 		{
-			if (img[line][column] == 0 && img[line][column + 1] == THRESHOLD)
+			if (img[line][column] == 0 && img[line][column + 1] == THRESHOLD)//检测圆环的切角
 			{
-				Ring_line_flag[1] = column;
+				Ring_line_flag[1] = column;//切角的右边纵坐标,一般不会执行到这里，Ring_line_flag[1]一般为0
 				break;
 			}
 		}
 		int temp = 0; //用来限制黑圆的中心位置
 		temp = (Ring_line_flag[0] + Ring_line_flag[1]) / 2;
 		if ((Ring_line_flag[1] - Ring_line_flag[0]) > 20 && (Ring_line_flag[0] - left[line]) > 10 &&
-			(right[line] - Ring_line_flag[1]) > 10)
+			(right[line] - Ring_line_flag[1]) > 10)//(right[line] - Ring_line_flag[1])切角的宽的相反数
 		{
-			uint8 leftb = d_local_left + k_local_left * line;
+			uint8 leftb = d_local_left + k_local_left * line; //拟合的边缘
 			uint8 rightb = d_local_right + k_local_right * line;
 			uint8 len = rightb - leftb;
 
@@ -3526,20 +3532,20 @@ uint8 Additional_Check_Ring(int left_change_row, int right_change_row, int *p_Ri
 		//("识别超大环1");
 		for (line = RowMin; line >= 0; --line)
 		{
-			int leftb = d_local_left + k_local_left * line;
-			int rightb = d_local_right + k_local_right * line;
+			int leftb = d_local_left + k_local_left * line;//拟合的边缘
+			int rightb = d_local_right + k_local_right * line; //拟合的边缘
 			cnt = rightb - leftb;
 			if (cnt < 10)
 				break;
 			int cnt_confirm = 0;
 
-			for (int col = leftb; col <= rightb; col++)
+			for (int col = leftb; col <= rightb; col++)//左边缘到右边缘
 			{
 				if (img[line][col] == 0)
-					cnt_confirm++;
+					cnt_confirm++;//图像为黑时+1
 			}
 
-			if (abs(cnt_confirm - cnt) <= 2) //中间全是黑
+			if (abs(cnt_confirm - cnt) <= 2) //中间全是黑（图像为黑的点与拟合道路宽度差不多）
 			{
 				//("识别超大环2");
 
