@@ -22,16 +22,16 @@ void imageProcessOnChipAndOnVS(uint8_t (*image)[CAMERA_COLS])
 	img_result_fill(img);
 #endif
 
-	clean_shadow();
-	Edge_Detection();
-	wave_filter();
-	current_status = Normal;
+	clean_shadow();//消除阴影
+	Edge_Detection();//寻边沿
+	wave_filter();//边沿的错误处理
+	current_status = Normal;//车身与道路的状况 为正常
 	/*开头障碍*************************************************/
-	if (bt_barier == 1 && RunTime <= 5 && RunTime > 0)
+	if (bt_barier == 1 && RunTime <= 5 && RunTime > 0)//bt_barier只有一个初始化为0，RunTime也只有一个初始化为0
 	{
-		if (Stepping_over_zebra())
+		if (Stepping_over_zebra())//判断斑马线
 			Stepping_over_zebra_flag = 1;
-		else if (Stepping_over_zebra_flag == 1 && head_clear_flag == 1)
+		else if (Stepping_over_zebra_flag == 1 && head_clear_flag == 1)//
 		{
 			Stepping_over_zebra_flag = 2;
 			barrier_status_transform();
@@ -267,14 +267,14 @@ void Edge_Detection(void)
 			for (column = center; column >= 0; column--) //如果中间点为白色，分别向两边寻找左右边沿点
 				if (img[line][column] == 0)
 				{
-					left[line] = column + 1;
+					left[line] = column + 1;//因为运行到这来column已经自减了所以+1
 					left_check_finish_flag = 1;
 					break;
 				}
 			for (column = center; column <= 79; column++)
 				if (img[line][column] == 0)
 				{
-					right[line] = column - 1;
+					right[line] = column - 1;//因为运行到这来column已经自加了所以-1
 					right_check_finish_flag = 1;
 					break;
 				}
@@ -286,20 +286,20 @@ void Edge_Detection(void)
 		/*****************************************************************************************************/
 		else //如果中间为黑色；则从两边循迹
 		{
-			int center_temp = 0; //求取重心
+			int center_temp = 0; //求取中心
 			int HighPointCount = 0;
 			int HighPoint = 0;
 			for (column = 1; column <= 78; column++)
 			{
 				if (img[line][column] == THRESHOLD)
 				{
-					HighPointCount += 1;
-					HighPoint = HighPoint + column;
+					HighPointCount += 1;//统计图像有一行内多少个白点，即求面积的底
+					HighPoint = HighPoint + column;//高度累加，求面积
 				}
 			}
 			if (HighPointCount != 0)
 			{
-				center_temp = HighPoint / HighPointCount;
+				center_temp = HighPoint / HighPointCount;//面积除以底得平均高度，即中心
 			}
 			else
 			{
@@ -331,7 +331,7 @@ void Edge_Detection(void)
 		{
 			left_check_finish_flag = 0;
 			right_check_finish_flag = 0;
-			for (column = 0; column <= 78; column++) //如果中间点为白色，分别向两边寻找左右边沿点
+			for (column = 0; column <= 78; column++) //如果中间点为白色，分别向两边寻找左右边沿点//分别两边向中间寻边沿
 				if (img[line][column] == 0 && img[line][column + 1] == THRESHOLD)
 				{
 					left[line] = column + 1;
@@ -397,6 +397,7 @@ void Edge_Detection(void)
 		}
 		else
 			left[line] = -1; //-1表示全是黑的，这种情况应该出现在黑线上
+		//此处应该有bug，如果一行全黑，那么此行以上的图像全部失效，不过几率很小可忽略
 							 /*******************************************************************************************************************/
 		if (right[line + 1] != -1)
 		{
@@ -455,7 +456,7 @@ void wave_filter(void)
 			}
 			break;
 		}
-	}
+	}//如果某行全黑，则令这行以上的图像为全黑并结束判断
 	for (line = RowMax; line >= RowMin; line--)
 	{
 		if ((right[line] <= left[line]) && (left[line] != -1))
@@ -467,7 +468,7 @@ void wave_filter(void)
 			}
 			break;
 		}
-	}
+	}//如果某行寻的左边沿在右边沿的右边，则令图像全黑并结束判断
 }
 //简单的求中线
 void middle_processing(void)
@@ -2322,24 +2323,24 @@ uint8 decide_barrier_polarity()
 {
 	int col = 0;
 	uint8 col1 = 0, col2 = 0;
-	for (int row = RowMax; row > 7; row -= 2)
+	for (int row = RowMax; row > 7; row -= 2)//从底部到头部
 	{
-		for (col = left[row]; col <= right[row]; col++)
+		for (col = left[row]; col <= right[row]; col++)//做左边沿到右边沿
 		{
-			if (img[row][col] == 0)
+			if (img[row][col] == 0)//发现黑点
 			{
-				col1 = col;
-				for (; img[row][col] == 0 && col <= right[row]; col++)
+				col1 = col;//障碍物左边
+				for (; img[row][col] == 0 && col <= right[row]; col++)//直接找障碍物右边
 					;
-				col2 = col;
-				col = (col1 + col2) / 2;
-				if (col < middle[row])
+				col2 = col;//斑马线右边
+				col = (col1 + col2) / 2;//障碍物中心
+				if (col < middle[row])//障碍物中心在中线左侧
 				{
-					return left_barrier;
+					return left_barrier;//在左边
 				}
 				else
 				{
-					return right_barrier;
+					return right_barrier;//在右边
 				}
 			}
 		}
@@ -2648,7 +2649,7 @@ uint8 Is_right_line_straight()
 	return 1;
 }
 
-uint8 barrier_action_delayer = 0;
+uint8 barrier_action_delayer = 0;//处理障碍的次数
 
 uint8 check_barrier_status()
 {
@@ -2850,17 +2851,17 @@ uint8 Is_right_line_straight_evo()
 	return 1;
 }
 
-void barrier_status_transform()
+void barrier_status_transform()//障碍物判断
 {
-	int temp_result = decide_barrier_polarity();
+	int temp_result = decide_barrier_polarity();//判断障碍物在左侧还是右侧
 	//("\ntemp_result%d", temp_result);
-	if (temp_result == right_barrier)
+	if (temp_result == right_barrier)//在右侧
 	{
 		Barrier_existance_and_polarity = 1;
-		barrier_status = ba_phase_one;
+		barrier_status = ba_phase_one;//近行无障碍
 		BELL_ON;
-		current_status = Straight_Perfect;
-		barrier_start_distance = Distance;
+		current_status = Straight_Perfect;//当前状态，完美直线
+		barrier_start_distance = Distance;//
 		barrier_action_delayer = 0;
 		gpio_set(LED_RED, 1);
 	}
@@ -2870,8 +2871,8 @@ void barrier_status_transform()
 		barrier_status = ba_phase_one;
 		BELL_ON;
 		current_status = Straight_Perfect;
-		barrier_start_distance = Distance;
-		barrier_action_delayer = 0;
+		barrier_start_distance = Distance;//Distance初始化为0，
+		barrier_action_delayer = 0;//
 		gpio_set(LED_RED, 1);
 	}
 }
@@ -3041,7 +3042,8 @@ uint8 check_barrier_status_evo()
 
 void clean_shadow()
 {
-	for (int col = 25; col < 55; col++)
+	/*图像底部如果白色部分较多，则图像 底部全部刷白，意义消除车自身阴影，如果白色部分较少，则认为真的有某个赛道元素在图像底部*/
+	for (int col = 25; col < 55; col++)//25列到55列
 	{
 		int evidence = 0;
 		if (img[59][col] == 0 || img[58][col] == 0 || img[57][col] == 0 || img[56][col] == 0 || img[55][col] == 0)
@@ -3104,7 +3106,7 @@ uint8 Stepping_over_zebra()
 	int i = 0;
 	int j = 0;
 	uint8 evidence = 0;
-	head_clear_flag = 1;
+	head_clear_flag = 1;//
 
 	for (i = 45; i <= 59; ++i)
 	{
@@ -3112,12 +3114,12 @@ uint8 Stepping_over_zebra()
 		uint8 *pimg = &img[i][0];
 		for (j = 15; j < 65; j++)
 		{
-			if (*(pimg + j) != *(pimg + j + 1))
+			if (*(pimg + j) != *(pimg + j + 1))//相邻的两点亮度不相等，判据+1
 				evidence++;
 		}
-		if (evidence >= 5 && i >= 53)
+		if (evidence >= 5 && i >= 53)//如果右侧还有
 			head_clear_flag = 0;
-		if (evidence > 12)
+		if (evidence > 12)//6条斑马线，判定为斑马线
 			return 1;
 	}
 	return 0;

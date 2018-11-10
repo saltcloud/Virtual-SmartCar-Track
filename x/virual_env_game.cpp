@@ -44,18 +44,18 @@ void virual_env_game()
 	{
 		src_orig = hwnd2mat(hq);/*游戏画面获取*/
 		if (!(src_orig.rows > 0 && src_orig.rows > 0)) continue;/*图像异常，终止*/
-		target_img = preprocess_image(src_orig);/*灰度化、裁剪、模糊、二值化、改变大小*/
+		target_img = preprocess_image(src_orig);/*灰度化、裁剪（舍弃）、模糊、二值化、改变大小*/
 		/********************************************************************/
 		//showing_result_already_handled是个标志位
 		//在imageProcessOnChipAndOnVS中调用绘制img_result后，将避免再次绘制
 		/********************************************************************/
-		Mat2ChipImg(target_img);///////////////////////////////////////////**/
+		Mat2ChipImg(target_img);//将图像压缩，每个像素用u8类型表示/////////////////////////////////////////**/
 		showing_result_already_handled = false;////////////////////////////**/
 		///////////////////////////////////////////////////////////////////**/
 		//////////////////////图像处理程序在此/////////////////////////////**/
 		///////////////////////////////////////////////////////////////////**/
 		///////////////////////////////////////////////////////////////////**/
-		imageProcessOnChipAndOnVS(image_OnChip);///////////////////////////**/
+		imageProcessOnChipAndOnVS(image_OnChip);//二值化后的图像处理/////////////////////////**/
 		///////////////////////////////////////////////////////////////////**/
 		///////////////////////////////////////////////////////////////////**/
 		///////////////////////////////////////////////////////////////////**/
@@ -246,12 +246,12 @@ Mat preprocess_image(Mat src_orig)
 	int kenel_size_y = 4 * src_cut.cols / _target_width; if (kenel_size_y % 2 == 0) kenel_size_y += 1;
 	int kenel = (kenel_size_x > kenel_size_y) ? kenel_size_x : kenel_size_y;//取较大的当卷积核
 
-	GaussianBlur(src_cut, src_blur, Size(kenel, kenel), blur_parameter);
+	GaussianBlur(src_cut, src_blur, Size(kenel, kenel), blur_parameter);//高斯滤波,存在src_blur
 
-	threshold(src_blur, img_threshold, 0, 255, CV_THRESH_OTSU);//大津法二值化
+	threshold(src_blur, img_threshold, 0, 255, CV_THRESH_OTSU);//大津法二值化,通过统计整个图像的直方图特性来实现全局阈值T的自动选取
 	Size size(_target_width, _target_hight);
 	resize(img_threshold, target_img, size, NULL, NULL, INTER_AREA);
-	threshold(target_img, target_img, 125, 255, CV_THRESH_BINARY);
+	threshold(target_img, target_img, 125, 255, CV_THRESH_BINARY);//再普通二值化（好像此步骤多余）
 
 	cvtColor(target_img, img_result, cv::COLOR_GRAY2BGR);//复制图像
 
